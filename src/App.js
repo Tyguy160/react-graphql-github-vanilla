@@ -5,6 +5,13 @@ import axios from 'axios';
 import logo from './logo.svg';
 import './App.css';
 
+const getIssuesOfRepository = path => {
+  const [organization, repository] = path.split('/');
+  
+  return axiosGitHubGraphQL
+      .post('', {query: getIssuesOfRepositoryQuery(organization, repository)})
+}
+
 const axiosGitHubGraphQL = axios.create({
   baseURL: 'https://api.github.com/graphql',
   headers: {
@@ -14,12 +21,12 @@ const axiosGitHubGraphQL = axios.create({
 
 const TITLE = 'React GraphQL GitHub Client'
 
-const GET_ISSUES_OF_REPOSITORY = `
+const getIssuesOfRepositoryQuery = (organization, repository) => `
 {
-  organization(login: "the-road-to-learn-react") {
+  organization(login: "${organization}") {
     name
     url
-    repository(name: "the-road-to-learn-react") {
+    repository(name: "${repository}") {
       name
       url
       issues (last: 5) {
@@ -36,6 +43,11 @@ const GET_ISSUES_OF_REPOSITORY = `
 }
 `;
 
+const resolveIssuesQuery = queryResult => () => ({
+  organization: queryResult.data.data.organization,
+  errors: queryResult.data.errors,
+})
+
 class App extends Component {
   
   state = {
@@ -46,7 +58,7 @@ class App extends Component {
   
   componentDidMount() {
     // fetch data here
-    this.onFetchFromGitHub();
+    this.onFetchFromGitHub(this.state.path);
   }
   
   onChange = e => {
@@ -59,16 +71,12 @@ class App extends Component {
     // fetch data
     e.preventDefault();
     console.log("Fetching data...")
-    this.onFetchFromGitHub();
+    this.onFetchFromGitHub(this.state.path);
   }
   
-  onFetchFromGitHub = () => {
-    axiosGitHubGraphQL
-      .post('', {query: GET_ISSUES_OF_REPOSITORY})
-      .then(result => this.setState({
-        organization: result.data.data.organization,
-        errors: result.data.errors
-      }))
+  onFetchFromGitHub = path => {
+    getIssuesOfRepository(path).then(queryResult =>
+      this.setState(resolveIssuesQuery(queryResult)))
   }
   
   render() {
