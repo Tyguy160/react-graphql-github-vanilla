@@ -1,15 +1,15 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 
-
-import logo from './logo.svg';
 import './App.css';
 
 const getIssuesOfRepository = path => {
   const [organization, repository] = path.split('/');
   
-  return axiosGitHubGraphQL
-      .post('', {query: getIssuesOfRepositoryQuery(organization, repository)})
+  return axiosGitHubGraphQL.post('', {
+    query: GET_ISSUES_OF_REPOSITORY,
+    variables: {organization, repository}
+  })
 }
 
 const axiosGitHubGraphQL = axios.create({
@@ -21,63 +21,59 @@ const axiosGitHubGraphQL = axios.create({
 
 const TITLE = 'React GraphQL GitHub Client'
 
-const getIssuesOfRepositoryQuery = (organization, repository) => `
-{
-  organization(login: "${organization}") {
-    name
-    url
-    repository(name: "${repository}") {
+const GET_ISSUES_OF_REPOSITORY = `
+  query ($organization: String!, $repository: String!) {
+    organization(login: $organization) {
       name
       url
-      issues (last: 5) {
-        edges {
-          node {
-            id
-            title
-            url
+      repository(name: $repository) {
+        name
+        url
+        issues (last: 5) {
+          edges {
+            node {
+              id
+              title
+              url
+            }
           }
         }
       }
     }
   }
-}
 `;
 
 const resolveIssuesQuery = queryResult => () => ({
   organization: queryResult.data.data.organization,
   errors: queryResult.data.errors,
-})
+});
 
 class App extends Component {
-  
   state = {
     path: 'the-road-to-learn-react/the-road-to-learn-react',
     organization: null,
     errors: null,
-  }
-  
+  };
+
   componentDidMount() {
-    // fetch data here
     this.onFetchFromGitHub(this.state.path);
   }
-  
-  onChange = e => {
-    this.setState({
-      path: e.target.value
-    })
-  }
-  
-  onSubmit = e => {
-    // fetch data
-    e.preventDefault();
-    console.log("Fetching data...")
+
+  onChange = event => {
+    this.setState({ path: event.target.value });
+  };
+
+  onSubmit = event => {
     this.onFetchFromGitHub(this.state.path);
-  }
-  
+
+    event.preventDefault();
+  };
+
   onFetchFromGitHub = path => {
     getIssuesOfRepository(path).then(queryResult =>
-      this.setState(resolveIssuesQuery(queryResult)))
-  }
+      this.setState(resolveIssuesQuery(queryResult)),
+    );
+  };
   
   render() {
     
