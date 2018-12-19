@@ -66,6 +66,9 @@ const GET_ISSUES_OF_REPOSITORY = `
         id
         name
         url
+        stargazers {
+          totalCount
+        }
         viewerHasStarred
         issues (first: 5, after: $cursor, states: [OPEN]) {
           edges {
@@ -125,13 +128,18 @@ const resolveIssuesQuery = (queryResult, cursor) => state => {
 
 const resolveAddStarMutation = mutationResult => state => {
   const { viewerHasStarred } = mutationResult.data.data.addStar.starrable;
+  const { totalCount } = state.organization.repository.stargazers;
+
   return {
     ...state,
     organization: {
       ...state.organization,
       repository: {
         ...state.organization.repository,
-        viewerHasStarred
+        viewerHasStarred,
+        stargazers: {
+          totalCount: totalCount + 1
+        }
       }
     }
   };
@@ -139,13 +147,18 @@ const resolveAddStarMutation = mutationResult => state => {
 
 const resolveRemoveStarMutation = mutationResult => state => {
   const { viewerHasStarred } = mutationResult.data.data.removeStar.starrable;
+  const { totalCount } = state.organization.repository.stargazers;
+
   return {
     ...state,
     organization: {
       ...state.organization,
       repository: {
         ...state.organization.repository,
-        viewerHasStarred
+        viewerHasStarred,
+        stargazers: {
+          totalCount: totalCount - 1
+        }
       }
     }
   };
@@ -268,7 +281,8 @@ const Repository = ({ repository, onFetchMoreIssues, onStarRepository }) => {
         onClick={() =>
           onStarRepository(repository.id, repository.viewerHasStarred)
         }>
-        {repository.viewerHasStarred ? 'Unstar' : 'Star'}
+        {repository.stargazers.totalCount}
+        {repository.viewerHasStarred ? ' Unstar' : ' Star'}
       </button>
       <ul>
         {repository.issues.edges.map(issue => (
